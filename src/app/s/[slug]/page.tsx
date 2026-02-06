@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import Image from 'next/image'
+import { Product, groupProductsByCategory } from '@/types/product'
+import { CategorySection } from '@/components/CategorySection'
+import { UniformModal } from '@/components/UniformModal'
 
 interface School {
     id: string
@@ -76,6 +79,9 @@ export default function SchoolPage({ params }: { params: { slug: string } }) {
     const [addingToCart, setAddingToCart] = useState<string | null>(null)
     const [cart, setCart] = useState<{ productId: string, quantity: number }[]>([])
     const [selectedBundle, setSelectedBundle] = useState<ProductBundle | null>(null)
+    const [allProducts, setAllProducts] = useState<Product[]>([])
+    const [selectedUniformProduct, setSelectedUniformProduct] = useState<Product | null>(null)
+    const [uniformModalOpen, setUniformModalOpen] = useState(false)
 
     useEffect(() => {
         fetchSchoolData()
@@ -185,6 +191,18 @@ export default function SchoolPage({ params }: { params: { slug: string } }) {
             if (bundlesError) console.error('Error fetching bundles:', bundlesError)
             setBundles(bundlesData || [])
 
+            // Fetch all products with categories and vendor verification
+            const { data: productsData, error: productsError } = await supabase
+                .from('products')
+                .select('id, name, price, image_url, description, category, is_official_vendor')
+                .order('category')
+
+            if (productsError) {
+                console.error('Error fetching products:', productsError)
+            } else {
+                setAllProducts(productsData || [])
+            }
+
         } catch (err: any) {
             console.error('Error fetching school:', err)
             setError('Failed to load school information. Please try again.')
@@ -218,6 +236,19 @@ export default function SchoolPage({ params }: { params: { slug: string } }) {
             console.error('Error adding to cart:', error)
             setAddingToCart(null)
         }
+    }
+
+    const handleCustomize = (product: Product) => {
+        setSelectedUniformProduct(product)
+        setUniformModalOpen(true)
+    }
+
+    const handleAddToCartFromModal = (productId: string, variantId?: string, measurements?: Record<string, number>) => {
+        // For now, just add to cart with productId
+        // In Phase 3, we'll handle variants and measurements properly
+        handleAddToCart(productId, 1)
+        setUniformModalOpen(false)
+        setSelectedUniformProduct(null)
     }
 
     const handleAddCompleteSet = (products: UniformProduct[]) => {
@@ -599,6 +630,39 @@ export default function SchoolPage({ params }: { params: { slug: string } }) {
                         </div>
                     )}
                 </div>
+
+                {/* Categorized Products */}
+                {allProducts.length > 0 && (
+                    <div className="space-y-8">
+                        <div className="premium-card">
+                            <h2 className="text-3xl font-bold text-slate-900 mb-2">📚 School Essentials</h2>
+                            <p className="text-slate-600 mb-8">Browse products by category</p>
+
+                            {Object.entries(groupProductsByCategory(allProducts)).map(([category, products]) => (
+                                <CategorySection
+                                    key={category}
+                                    category={category}
+                                    products={products}
+                                    onAddToCart={(product) => handleAddToCart(product.id, 1)}
+                                    onCustomize={handleCustomize}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Uniform Customization Modal */}
+                {selectedUniformProduct && (
+                    <UniformModal
+                        product={selectedUniformProduct}
+                        isOpen={uniformModalOpen}
+                        onClose={() => {
+                            setUniformModalOpen(false)
+                            setSelectedUniformProduct(null)
+                        }}
+                        onAddToCart={handleAddToCartFromModal}
+                    />
+                )}
 
                 {/* Cart Indicator (Fixed) */}
                 {cart.length > 0 && (
