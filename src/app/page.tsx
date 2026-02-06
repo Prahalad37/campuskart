@@ -88,7 +88,7 @@ export default function Home() {
                                             />
                                             <Button
                                                 onClick={() => setShowScanner(false)}
-                                                variant="outline"
+                                                variant="secondary"
                                                 size="sm"
                                                 className="mt-4"
                                             >
@@ -116,7 +116,7 @@ export default function Home() {
 
                                                 <Button
                                                     onClick={handleDemoScan}
-                                                    variant="outline"
+                                                    variant="secondary"
                                                     size="lg"
                                                     className="min-w-[200px]"
                                                 >
