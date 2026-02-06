@@ -6,18 +6,49 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { QRScanner } from "@/components/QRScanner";
 
 export default function Home() {
     const router = useRouter();
-    const [scanning, setScanning] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
+    const [scanResult, setScanResult] = useState<string | null>(null);
 
-    const handleScanDemo = () => {
-        setScanning(true);
-        // Simulate QR scan delay
-        setTimeout(() => {
-            // Demo: Navigate to DPS Rohini demo school
-            router.push("/s/dps-rohini");
-        }, 1500);
+    const handleQRScan = (data: string) => {
+        console.log("QR Code scanned:", data);
+        setScanResult(data);
+
+        // Parse the QR code data
+        // Expected format: "https://campuskart.vercel.app/s/{school-slug}"
+        // or just "{school-slug}"
+
+        try {
+            let schoolSlug = data;
+
+            // If it's a full URL, extract the slug
+            if (data.includes("/s/")) {
+                const match = data.match(/\/s\/([^/?]+)/);
+                if (match && match[1]) {
+                    schoolSlug = match[1];
+                }
+            }
+
+            // Navigate to school page
+            router.push(`/s/${schoolSlug}`);
+        } catch (error) {
+            console.error("Error parsing QR code:", error);
+            alert("Invalid QR code format. Please scan a valid school QR code.");
+        }
+    };
+
+    const handleScanError = (error: Error) => {
+        console.error("Scanner error:", error);
+        setShowScanner(false);
+        alert("Camera access failed. Please enable camera permissions or use demo mode.");
+    };
+
+    const handleDemoScan = () => {
+        // Demo mode - navigate directly to DPS Rohini
+        router.push("/s/dps-rohini");
     };
 
     return (
@@ -44,38 +75,60 @@ export default function Home() {
                         <Card className="mb-8">
                             <CardHeader>
                                 <CardTitle className="text-center">
-                                    {scanning ? "Scanning QR Code..." : "Scan to Begin"}
+                                    {showScanner ? "Point Camera at QR Code" : "Scan to Begin"}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="py-12">
-                                    {/* QR Code Scanner Placeholder */}
-                                    <div className="w-64 h-64 mx-auto mb-6 border-4 border-dashed border-primary rounded-lg flex items-center justify-center bg-gray-50">
-                                        {scanning ? (
-                                            <div className="text-center">
-                                                <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                                                <p className="text-secondary">Processing...</p>
+                                <div className="py-8">
+                                    {showScanner ? (
+                                        <div className="max-w-md mx-auto">
+                                            <QRScanner
+                                                onScan={handleQRScan}
+                                                onError={handleScanError}
+                                            />
+                                            <Button
+                                                onClick={() => setShowScanner(false)}
+                                                variant="outline"
+                                                size="sm"
+                                                className="mt-4"
+                                            >
+                                                Cancel Scan
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* QR Icon */}
+                                            <div className="w-48 h-48 mx-auto mb-6 border-4 border-dashed border-primary rounded-xl flex items-center justify-center bg-gray-50">
+                                                <svg className="w-24 h-24 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                                </svg>
                                             </div>
-                                        ) : (
-                                            <svg className="w-32 h-32 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                                            </svg>
-                                        )}
-                                    </div>
 
-                                    <Button
-                                        onClick={handleScanDemo}
-                                        disabled={scanning}
-                                        variant="primary"
-                                        size="lg"
-                                        className="w-full max-w-sm mx-auto"
-                                    >
-                                        {scanning ? "Scanning..." : "Start Demo Scan"}
-                                    </Button>
+                                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                                <Button
+                                                    onClick={() => setShowScanner(true)}
+                                                    variant="primary"
+                                                    size="lg"
+                                                    className="min-w-[200px]"
+                                                >
+                                                    📷 Scan QR Code
+                                                </Button>
 
-                                    <p className="text-sm text-secondary mt-4">
-                                        In production, this will activate your device camera to scan QR codes
-                                    </p>
+                                                <Button
+                                                    onClick={handleDemoScan}
+                                                    variant="outline"
+                                                    size="lg"
+                                                    className="min-w-[200px]"
+                                                >
+                                                    Try Demo School
+                                                </Button>
+                                            </div>
+
+                                            <p className="text-sm text-secondary mt-4">
+                                                Use your phone camera to scan school QR codes or try the demo
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
